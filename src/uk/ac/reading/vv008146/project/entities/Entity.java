@@ -72,12 +72,7 @@ public abstract class Entity implements Serializable {
 
     public void setVelocity(Vector2 velocity) {
 
-        if(velocity.getMagnitude() > this.maxSpeed) {
-            Vector2 velocityUnit = velocity.scalarDivide(velocity.getMagnitude());
-            this.velocity = velocityUnit.scalarMultiply(this.maxSpeed);
-        } else {
-            this.velocity = velocity;
-        }
+        this.velocity = velocity;
 
         Vector2 offset = new Vector2(0,0);
 
@@ -95,6 +90,12 @@ public abstract class Entity implements Serializable {
 
         this.velocity.add(offset);
 
+        if(velocity.getMagnitude() > this.maxSpeed) {
+            Vector2 velocityUnit = velocity.scalarDivide(velocity.getMagnitude());
+            this.velocity = velocityUnit.scalarMultiply(this.maxSpeed);
+        } else {
+            this.velocity = velocity;
+        }
     }
 
     public double getEnergyDepletionValue() {
