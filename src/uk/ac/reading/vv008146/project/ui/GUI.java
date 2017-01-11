@@ -19,10 +19,7 @@ import javafx.stage.Stage;
 import uk.ac.reading.vv008146.project.World;
 import uk.ac.reading.vv008146.project.entities.Entity;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.prefs.Preferences;
 
 /**
@@ -81,20 +78,11 @@ public class GUI extends Application {
 
             @Override
             public void handle(long now) {
-
                 if(simulate) {
                     simulatedWorld.simulateOutsideOfGrid();
 
                     // Sync entities
-
-                }
-
-                worldCanvas.getChildren().clear();
-                //setupEntityViews();
-
-                for(EntityView e : views) {
-
-                    worldCanvas.getChildren().add(e.getSprite());
+                    updateEntityViews();
 
                 }
             }
@@ -130,7 +118,7 @@ public class GUI extends Application {
                     this.worldCanvas.setStyle("-fx-background-color: mediumspringgreen");
                     this.setupEntityViews();
 
-                    this.simulate = true;
+                    this.simulate = false;
                     this.simulationTimer.start();
 
 
@@ -249,7 +237,7 @@ public class GUI extends Application {
             this.simulate = true;
             pauseItem.setDisable(false);
             runItem.setDisable(true);
-            mp.play();
+            //mp.play();
         });
 
         pauseItem.setOnAction(actionEvent -> {
@@ -383,8 +371,37 @@ public class GUI extends Application {
 
         this.views.clear();
 
-        for(Entity e : simulatedWorld.getEntities()) {
-            this.views.add(new EntityView(e));
+        for(Entity e : simulatedWorld.getEntities().values()) {
+            EntityView view = new EntityView(e);
+            this.views.add(view);
+        }
+
+        for(EntityView v : this.views) {
+            this.worldCanvas.getChildren().add(v.getSprite());
+        }
+    }
+
+    private void updateEntityViews() {
+
+        ListIterator<EntityView> viewListIterator = this.views.listIterator();
+
+        while(viewListIterator.hasNext()) {
+            EntityView v = viewListIterator.next();
+
+            Entity e = this.simulatedWorld.getEntities().get(v.getEntity().getUuid());
+
+            if(e == null) {
+                // This entity has been removed from the world. Probably dead or eaten
+                viewListIterator.remove();
+                continue;
+            }
+
+            if(e.getEnergy() <= 0) {
+                v.getSprite().setVisible(false);
+            }
+
+            v.getSprite().setX(e.getPosition().getX());
+            v.getSprite().setY(e.getPosition().getY());
         }
     }
 }

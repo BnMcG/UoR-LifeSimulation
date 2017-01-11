@@ -24,6 +24,9 @@ public class World implements Serializable {
     private Map<UUID, Entity> entities;
     private List<BoidFlock> flocks;
 
+    private Vector2 minimumPosition;
+    private Vector2 maximumPosition;
+
     private Color backgroundColor;
 
     private int foodDetectionDistance;
@@ -47,8 +50,14 @@ public class World implements Serializable {
         this.entities = new HashMap<>();
         this.populationLimit = this.width * this.height;
         this.foodDetectionDistance = 4;
+        this.setupMinMaxPositions();
 
         //this.boidTestFlock = new BoidFlock(new ArrayList<LivingBeing>(), new Vector2(0, 0), new Vector2(this.width, this.height), this);
+    }
+
+    private void setupMinMaxPositions() {
+        this.minimumPosition = new Vector2(0,0);
+        this.maximumPosition = new Vector2(this.width, this.height);
     }
 
     public int getFoodDetectionDistance() {
@@ -72,6 +81,7 @@ public class World implements Serializable {
         this.height = height;
         this.entities = new HashMap<>();
         this.populationLimit = numEntities;
+        this.setupMinMaxPositions();
     }
 
     /**
@@ -97,7 +107,7 @@ public class World implements Serializable {
      * @return Get array of entities
      */
 
-    public List<Entity> getEntities() {
+    public Map<UUID, Entity> getEntities() {
         return entities;
     }
 
@@ -109,7 +119,7 @@ public class World implements Serializable {
     public void addEntity(Entity e) {
 
         if(this.entities.size() < this.populationLimit) {
-            this.entities.add(e);
+            this.entities.put(e.getUuid(), e);
         } else {
             System.out.println("World is full!");
         }
@@ -156,6 +166,7 @@ public class World implements Serializable {
 
         World world = new World(width, height, maxEntities);
         world.generateNoise();
+        world.setupMinMaxPositions();
 
         // Add food to the world
         float foodPercentageMultiplier = (float) foodPercent / 100;
@@ -251,6 +262,7 @@ public class World implements Serializable {
 
         World world = new World(width, height, width*height);
         world.generateNoise();
+        world.setupMinMaxPositions();
 
         // Add food to the world
         float foodPercentageMultiplier = (float) foodPercent / 100;
@@ -352,7 +364,7 @@ public class World implements Serializable {
     public boolean blocked(double x, double y) {
         boolean blocked = false;
 
-        for(Entity e : this.entities) {
+        for(Entity e : this.entities.values()) {
             if(e != null) {
                 if(e.getPosition().getX() == x && e.getPosition().getY() == y) {
                     if(!(e instanceof Food)) {
@@ -390,7 +402,7 @@ public class World implements Serializable {
     public int totalEntityEnergy() {
         int sum = 0;
 
-        for(Entity e : this.entities) {
+        for(Entity e : this.entities.values()) {
 
             if(e == null) {
                 continue;
@@ -412,7 +424,7 @@ public class World implements Serializable {
     public int foodCount() {
         int sum = 0;
 
-        for(Entity e : this.entities) {
+        for(Entity e : this.entities.values()) {
 
             if(e == null) {
                 continue;
@@ -569,17 +581,19 @@ public class World implements Serializable {
         // How far away an entity can actually be from food before eating it
         double variance = 10;
 
-        for(int j = 0; j < entities.size(); j++) {
-
-            if(entities.get(j).getPosition().getX() > e.getPosition().getX() - variance && entities.get(j).getPosition().getX() < e.getPosition().getX() + variance) {
-                if(entities.get(j).getPosition().getY() > e.getPosition().getY() - variance && entities.get(j).getPosition().getY() < e.getPosition().getY() + variance) {
-                    if (entities.get(j) instanceof Food) {
+        for(Entity worldEntity : entities.values()) {
+            if(worldEntity.getPosition().getX() > e.getPosition().getX() - variance && worldEntity.getPosition().getX() < e.getPosition().getX() + variance) {
+                if(worldEntity.getPosition().getY() > e.getPosition().getY() - variance && worldEntity.getPosition().getY() < e.getPosition().getY() + variance) {
+                    if (worldEntity instanceof Food) {
                         // Dinner time for our entity
                         // Eating isn't a 100% efficient process though, so the entity won't gain all of the energy in the
                         // food, some will be expended... :(
-                        e.setEnergy(e.getEnergy() + (entities.get(j).getEnergy() * e.getConsumptionEfficiencyPercentage()));
+                        e.setEnergy(e.getEnergy() + (worldEntity).getEnergy() * e.getConsumptionEfficiencyPercentage());
+
                         // Gobble gobble
-                        entities.remove(j);
+                        // We don't remove food any more, since it can grow back. There was also a pesky ConcurrentModificationException that wouldn't
+                        // disappear, even when using an iterator.
+                        worldEntity.setEnergy(0);
                     }
                 }
             }
@@ -593,9 +607,7 @@ public class World implements Serializable {
 
     public void simulateOutsideOfGrid() {
 
-        for(int i = 0; i < this.entities.size(); i++) {
-
-            Entity e = entities.get(i);
+        for(Entity e : entities.values()) {
 
             // Scan for food
             if(e instanceof LivingBeing) {
@@ -636,5 +648,21 @@ public class World implements Serializable {
 
     public double[][] getNoise() {
         return noise;
+    }
+
+    public Vector2 getMinimumPosition() {
+        return minimumPosition;
+    }
+
+    public void setMinimumPosition(Vector2 minimumPosition) {
+        this.minimumPosition = minimumPosition;
+    }
+
+    public Vector2 getMaximumPosition() {
+        return maximumPosition;
+    }
+
+    public void setMaximumPosition(Vector2 maximumPosition) {
+        this.maximumPosition = maximumPosition;
     }
 }

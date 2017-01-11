@@ -9,6 +9,7 @@ import uk.ac.reading.vv008146.project.ui.SerializableImageView;
 
 import javax.imageio.ImageIO;
 import java.io.*;
+import java.util.UUID;
 
 /**
  * Created by Ben Magee on 11/10/2016.
@@ -30,6 +31,9 @@ public abstract class Entity implements Serializable {
 
     private Vector2 velocity;
     protected double maxSpeed;
+    private double boundingConstant; // How quickly entities will return back inside the bounds if they travel outside
+
+    private UUID uuid;
 
     public void setSpriteName(String name) {
         this.spriteName = name;
@@ -39,7 +43,14 @@ public abstract class Entity implements Serializable {
         return spriteName;
     }
 
+    protected void generateUuid() {
+        this.uuid = UUID.randomUUID();
+    }
+
     public Entity() {
+
+        this.generateUuid();
+
         this.setSpriteName("objects/pin.png");
         this.setPosition(new Vector2(0, 0));
         this.energy = 100;
@@ -47,8 +58,9 @@ public abstract class Entity implements Serializable {
         this.world = new World();
 
         this.energyDepletionValue = 0.01d;
+        this.boundingConstant = 5;
 
-        this.maxSpeed = 10;
+        this.maxSpeed = 1.5;
 
         // https://en.wikipedia.org/wiki/Ten_percent_law
         this.consumptionEfficiencyPercentage = 0.10;
@@ -66,6 +78,23 @@ public abstract class Entity implements Serializable {
         } else {
             this.velocity = velocity;
         }
+
+        Vector2 offset = new Vector2(0,0);
+
+        if(this.getPosition().getX() < world.getMinimumPosition().getX()) {
+            offset.setX(this.boundingConstant);
+        } else if(this.getPosition().getX() > world.getMaximumPosition().getX()) {
+            offset.setX(this.boundingConstant*-1);
+        }
+
+        if(this.getPosition().getY() < world.getMinimumPosition().getY()) {
+            offset.setY(this.boundingConstant);
+        } else if(this.getPosition().getY() > world.getMaximumPosition().getY()) {
+            offset.setY(this.boundingConstant*-1);
+        }
+
+        this.velocity.add(offset);
+
     }
 
     public double getEnergyDepletionValue() {
@@ -85,10 +114,17 @@ public abstract class Entity implements Serializable {
     }
 
     public Entity(String species, Vector2 position, int energy, int id, World world) {
+
+        this.generateUuid();
+
         this.setPosition(position);
         this.energy = energy;
         this.id = id;
         this.world = world;
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 
     public Vector2 getPosition() {

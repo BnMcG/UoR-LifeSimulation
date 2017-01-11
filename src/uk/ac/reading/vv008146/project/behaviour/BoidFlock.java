@@ -197,7 +197,7 @@ public class BoidFlock {
         double closestDistance = Double.POSITIVE_INFINITY;
         Obstacle closestObstacle = null;
 
-        for(Entity e : world.getEntities()) {
+        for(Entity e : world.getEntities().values()) {
             if(e instanceof Obstacle) {
                 if(e.getPosition().subtract(boid.getPosition()).getMagnitude() < 50) {
                     if(e.getPosition().subtract(boid.getPosition()).getMagnitude() < closestDistance) {

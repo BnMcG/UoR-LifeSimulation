@@ -13,6 +13,9 @@ import java.util.Random;
 public class Food extends Entity {
 
     public Food(Vector2 position, int energy, World world) {
+
+        this.generateUuid();
+
         this.setSpriteName("food/candy");
 
         this.setPosition(position);
@@ -23,6 +26,9 @@ public class Food extends Entity {
     }
 
     public Food(String spriteName, Vector2 position, int energy, World world) {
+
+        this.generateUuid();
+
         this.setSpriteName(spriteName);
         this.setPosition(position);
         this.energy = energy;

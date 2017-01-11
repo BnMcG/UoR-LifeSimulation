@@ -44,6 +44,9 @@ public class LivingBeing extends Entity {
     }
 
     public LivingBeing(String spriteName, Vector2 position, World world) {
+
+        this.generateUuid();
+
         this.spriteName = spriteName;
         this.setPosition(position);
         this.energy = 10;
@@ -54,6 +57,9 @@ public class LivingBeing extends Entity {
     }
 
     public LivingBeing(Vector2 position, World world) {
+
+        this.generateUuid();
+
         this.setSpriteName("animals/tiger.png");
         this.setPosition(position);
         this.energy = 10;
@@ -121,7 +127,7 @@ public class LivingBeing extends Entity {
                 // Max value
                 double maxNorth = this.getPosition().getY() - range;
 
-                for(Entity e : this.world.getEntities()) {
+                for(Entity e : this.world.getEntities().values()) {
 
                     if(e == null) {
                         continue;
@@ -143,7 +149,7 @@ public class LivingBeing extends Entity {
             case EAST:
                 double maxEast = this.getPosition().getX() + range;
 
-                for(Entity e : this.world.getEntities()) {
+                for(Entity e : this.world.getEntities().values()) {
 
                     if(e == null) {
                         continue;
@@ -164,7 +170,7 @@ public class LivingBeing extends Entity {
             case SOUTH:
                 double maxSouth = this.getPosition().getY() + range;
 
-                for(Entity e : this.world.getEntities()) {
+                for(Entity e : this.world.getEntities().values()) {
 
                     if(e == null) {
                         continue;
@@ -185,7 +191,7 @@ public class LivingBeing extends Entity {
             case WEST:
                 double maxWest = this.getPosition().getX() - range;
 
-                for(Entity e : this.world.getEntities()) {
+                for(Entity e : this.world.getEntities().values()) {
 
                     if(e == null) {
                         continue;
@@ -221,9 +227,14 @@ public class LivingBeing extends Entity {
         Food closestFood = null;
         double shortestDistance = Double.POSITIVE_INFINITY;
 
-        for(Entity e : world.getEntities()) {
+        for(Entity e : world.getEntities().values()) {
             if(e instanceof Food) {
+
                 Food food = (Food) e;
+
+                if(food.getEnergy() <= 0) {
+                    continue;
+                }
 
                 // Get being's x/y coordinates:
                 double beingX = this.getPosition().getX();

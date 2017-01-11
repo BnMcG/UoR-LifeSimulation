@@ -15,6 +15,9 @@ public class EntityView {
     protected Entity entity;
 
     public EntityView(String spriteName, Entity entity) {
+
+        this.entity = entity;
+
         this.sprite = new ImageView(SpriteLoader.load(spriteName));
         this.sprite.setX(entity.getPosition().getX());
         this.sprite.setY(entity.getPosition().getY());
@@ -22,6 +25,9 @@ public class EntityView {
     }
 
     public EntityView(Entity e) {
+
+        this.entity = e;
+
         this.sprite = new ImageView(SpriteLoader.load(e.getSpriteName()));
         this.sprite.setPreserveRatio(true);
         this.sprite.setFitWidth(25);

@@ -86,7 +86,7 @@ public class EntityGenerationGUI {
         root.add(lblMaxSpeed, 0, 4);
 
         TextField txtMaxSpeed = new TextField();
-        txtMaxSpeed.setText("10");
+        txtMaxSpeed.setText("1.5");
         root.add(txtMaxSpeed, 1, 4, 2, 1);
 
 
@@ -142,6 +142,10 @@ public class EntityGenerationGUI {
 
             // Create a new entity
             LivingBeing being = new LivingBeing("animals/" + choiceSprite.getValue(), new Vector2(0, 0), new World(1,1,1));
+            being.setEnergy(Double.valueOf(txtEnergy.getText()));
+            being.setEnergyDepletionValue(Double.valueOf(txtEnergyDepletion.getText()));
+            being.setConsumptionEfficiencyPercentage(Double.valueOf(txtConsumptionEfficiency.getText()));
+
             being.setVelocity(new Vector2(0,0));
             being.save(preferences.get("settings-directory", ".") + "/" + txtName.getText().toLowerCase() + ".entity");
 

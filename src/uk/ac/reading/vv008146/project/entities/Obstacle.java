@@ -11,6 +11,9 @@ import uk.ac.reading.vv008146.project.World;
 public class Obstacle extends Entity {
 
     public Obstacle(Vector2 position, World world) {
+
+        this.generateUuid();
+
         this.setSpriteName("objects/tree-christmas");
         this.setPosition(position);
         this.energy = 5;
