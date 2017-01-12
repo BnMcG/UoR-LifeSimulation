@@ -12,7 +12,7 @@ public class Obstacle extends Entity {
 
     public Obstacle(Vector2 position, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setSpriteName("objects/tree-christmas");
         this.setPosition(position);

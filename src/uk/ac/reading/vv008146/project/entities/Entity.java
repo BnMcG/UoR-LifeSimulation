@@ -43,13 +43,13 @@ public abstract class Entity implements Serializable {
         return spriteName;
     }
 
-    protected void generateUuid() {
+    public void setUuid() {
         this.uuid = UUID.randomUUID();
     }
 
     public Entity() {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setSpriteName("objects/pin.png");
         this.setPosition(new Vector2(0, 0));
@@ -58,7 +58,7 @@ public abstract class Entity implements Serializable {
         this.world = new World();
 
         this.energyDepletionValue = 0.01d;
-        this.boundingConstant = 5;
+        this.boundingConstant = 300;
 
         this.maxSpeed = 1.5;
 
@@ -71,8 +71,6 @@ public abstract class Entity implements Serializable {
     }
 
     public void setVelocity(Vector2 velocity) {
-
-        this.velocity = velocity;
 
         Vector2 offset = new Vector2(0,0);
 
@@ -88,14 +86,16 @@ public abstract class Entity implements Serializable {
             offset.setY(this.boundingConstant*-1);
         }
 
-        this.velocity.add(offset);
+        if(offset.getX() != 0 && offset.getY() != 0) {
+            velocity = offset;
+        }
 
         if(velocity.getMagnitude() > this.maxSpeed) {
             Vector2 velocityUnit = velocity.scalarDivide(velocity.getMagnitude());
-            this.velocity = velocityUnit.scalarMultiply(this.maxSpeed);
-        } else {
-            this.velocity = velocity;
+            velocity = velocityUnit.scalarMultiply(this.maxSpeed);
         }
+
+        this.velocity = velocity;
     }
 
     public double getEnergyDepletionValue() {
@@ -116,7 +116,7 @@ public abstract class Entity implements Serializable {
 
     public Entity(String species, Vector2 position, int energy, int id, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setPosition(position);
         this.energy = energy;

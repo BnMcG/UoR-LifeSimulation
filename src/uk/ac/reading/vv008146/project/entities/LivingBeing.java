@@ -45,7 +45,7 @@ public class LivingBeing extends Entity {
 
     public LivingBeing(String spriteName, Vector2 position, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.spriteName = spriteName;
         this.setPosition(position);
@@ -58,7 +58,7 @@ public class LivingBeing extends Entity {
 
     public LivingBeing(Vector2 position, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setSpriteName("animals/tiger.png");
         this.setPosition(position);

@@ -14,7 +14,7 @@ public class Food extends Entity {
 
     public Food(Vector2 position, int energy, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setSpriteName("food/candy");
 
@@ -27,7 +27,7 @@ public class Food extends Entity {
 
     public Food(String spriteName, Vector2 position, int energy, World world) {
 
-        this.generateUuid();
+        this.setUuid();
 
         this.setSpriteName(spriteName);
         this.setPosition(position);

@@ -213,6 +213,7 @@ public class World implements Serializable {
 
             for(int j = 0; j < quantity; j++) {
                 LivingBeing being = LivingBeing.load(preferences.get("settings-directory", ".") + "/" + entity + ".entity");
+                being.setUuid();
                 int[] randomPos = world.findRandomEmptyPosition();
                 Vector2 randomPosAsVec = new Vector2(randomPos[0], randomPos[1]);
 
@@ -438,43 +439,6 @@ public class World implements Serializable {
         return sum;
     }
 
-
-    private boolean makeCompassMovement(LivingBeing e, Direction d) {
-
-        switch (d) {
-            case NORTH:
-                if (!(this.blocked(e.getPosition().getX(), e.getPosition().getY() - 1)) && e.getPosition().getY()  - 1 > 0) {
-                    e.setPosition(new Vector2(e.getPosition().getX(), e.getPosition().getY() - 1));
-                    e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
-                    return true;
-                }
-                break;
-            case EAST:
-                if (!(this.blocked(e.getPosition().getX() + 1, e.getPosition().getY())) && e.getPosition().getX() +1 <= this.width) {
-                    e.setPosition(new Vector2(e.getPosition().getX() + 1, e.getPosition().getY()));
-                    e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
-                    return true;
-                }
-                break;
-            case SOUTH:
-                if (!(this.blocked(e.getPosition().getX(), e.getPosition().getY() + 1)) && e.getPosition().getY() + 1 <= this.height) {
-                    e.setPosition(new Vector2(e.getPosition().getX(), e.getPosition().getY() + 1));
-                    e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
-                    return true;
-                }
-                break;
-            case WEST:
-                if (!(this.blocked(e.getPosition().getX() - 1, e.getPosition().getY())) && e.getPosition().getX() - 1 > 0) {
-                    e.setPosition(new Vector2(e.getPosition().getX() - 1, e.getPosition().getY()));
-                    e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
-                    return true;
-                }
-                break;
-        }
-
-        return false;
-    }
-
     /**
      * Move the entity in a random direction
      * @param e
@@ -485,28 +449,17 @@ public class World implements Serializable {
         // Only move randomly if sufficient time has passed
         if(!((System.currentTimeMillis() - e.getLastRandomMovement()) > 1000)) {
             // Continue in the last random direction
-            this.makeCompassMovement(e, e.getLastRandomDirection());
+            e.setVelocity(e.getGoal().subtract(e.getPosition().scalarDivide(1000).scalarMultiply(0.01)));
             e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
 
             // Don't do anything else
             return;
         }
 
-        // Let's do the time warp again!
-        boolean moved = false;
-
-        // Maximum number of iterations to try before giving up and leaving the entity in its current position
-        int iterations = 0;
-        Direction d = Direction.random();
-
-        while(!moved && iterations < 4) {
-            d = Direction.random();
-            moved = this.makeCompassMovement(e, d);
-            iterations++;
-        }
-
+        // Set a new random goal
+        Random rng = new Random();
+        e.setGoal(new Vector2(rng.nextInt((int) this.getMaximumPosition().getX()), rng.nextInt((int) this.getMaximumPosition().getY())));
         e.setLastRandomMovement(System.currentTimeMillis());
-        e.setLastRandomDirection(d);
     }
 
     /**
