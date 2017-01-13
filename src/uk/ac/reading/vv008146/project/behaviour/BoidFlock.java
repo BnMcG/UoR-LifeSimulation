@@ -8,6 +8,7 @@ import uk.ac.reading.vv008146.project.entities.Food;
 import uk.ac.reading.vv008146.project.entities.LivingBeing;
 import uk.ac.reading.vv008146.project.entities.Obstacle;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Random;
 
@@ -18,7 +19,7 @@ import java.util.Random;
  * This class will allow the entities within its list to act as a single flock or herd. Great for setting
  * up living beings to behave in herds rather than as individuals
  */
-public class BoidFlock {
+public class BoidFlock implements Serializable {
 
     // All entities to consider when applying boid rules
     private List<LivingBeing> flock;
@@ -35,10 +36,7 @@ public class BoidFlock {
     private Vector2 minimumPosition; // The minimum X/Y values the boids can travel to
     private Vector2 maximumPosition; // The maximum X/Y values that the boids can travel to
 
-    private Vector2 meanderingVector;
-
     private long goalLastChanged;
-    private long lastSimulation;
     private Vector2 goal;
 
     private Random rng;
@@ -47,9 +45,9 @@ public class BoidFlock {
         this.flock = flock;
         this.world = world;
 
-        this.centreOfMassMovementFactor = 0.005;
-        this.minimumBoidDistance = 50;
-        this.boundingConstant = 2.5;
+        this.centreOfMassMovementFactor = 1;
+        this.minimumBoidDistance = 300;
+        this.boundingConstant = 150;
 
         this.maximumSpeed = 1.5;
 
@@ -57,13 +55,9 @@ public class BoidFlock {
         this.maximumPosition = maxPosition;
 
         this.rng = new Random();
-        this.meanderingRule(null);
 
         this.goal = (new Vector2(rng.nextInt(world.getWidth()), rng.nextInt(world.getHeight())));
         this.goalLastChanged = System.currentTimeMillis();
-
-        this.lastSimulation = 0;
-
     }
 
     public void add(LivingBeing e) {
@@ -72,27 +66,28 @@ public class BoidFlock {
 
     public void simulateFlock() {
 
-        if(System.currentTimeMillis() - this.goalLastChanged > 15000) {
+        if(System.currentTimeMillis() - this.goalLastChanged > 1000) {
             this.goal = (new Vector2(rng.nextInt(world.getWidth()), rng.nextInt(world.getHeight())));
             this.goalLastChanged = System.currentTimeMillis();
         }
 
         for(LivingBeing boid : this.flock) {
 
-            Vector2 CoMVector = this.centreOfMassRule(boid).scalarMultiply(0.5);
+            Vector2 CoMVector = this.centreOfMassRule(boid).scalarMultiply(0);
             Vector2 boundingVector = this.boundingRule(boid);
-            Vector2 velocityVector = this.normaliseVelocityRule(boid);
+            Vector2 velocityVector = this.normaliseVelocityRule(boid).scalarMultiply(rng.nextInt(5));
             Vector2 positionVector = this.randomPositionRule(boid);
             Vector2 obstacleAvoidanceVector = this.avoidObstaclesRule(boid);
-            //Vector2 meanderVector = this.meanderingRule(boid);
-            Vector2 distanceVector = this.maintainDistanceRule(boid).scalarMultiply(rng.nextInt(100));
+            Vector2 meanderVector = this.meanderingRule(boid);
+            Vector2 distanceVector = this.maintainDistanceRule(boid).scalarMultiply(1);
 
-            boid.setVelocity(boid.getVelocity().add(CoMVector).add(boundingVector).add(velocityVector).add(positionVector).add(obstacleAvoidanceVector).add(distanceVector));
+            boid.setVelocity(boid.getVelocity().add(CoMVector).add(boundingVector).add(meanderVector).add(positionVector).add(velocityVector).add(obstacleAvoidanceVector).add(distanceVector));
 
             // Limit the maximum speed
             boid.setVelocity(speedLimitationRule(boid));
 
             boid.setPosition(boid.getPosition().add(boid.getVelocity()));
+
         }
 
     }
@@ -182,12 +177,13 @@ public class BoidFlock {
 
         if(boid.smellFood(world.getFoodDetectionDistance()) != null) {
             Food food = boid.smellFood(world.getFoodDetectionDistance());
-            boid.setGoal(food.getPosition());
-        } else {
-            boid.setGoal(this.goal);
+            this.goal = food.getPosition();
         }
 
-        return boid.getGoal().subtract(boid.getPosition()).scalarDivide(1000).scalarMultiply(this.centreOfMassMovementFactor).scalarMultiply(2);
+        boid.setGoal(this.goal);
+
+        return boid.getGoal().subtract(boid.getPosition());
+        //return boid.getGoal().subtract(boid.getPosition()).scalarDivide(1000).scalarMultiply(this.centreOfMassMovementFactor).scalarMultiply(2);
     }
 
     private Vector2 avoidObstaclesRule(LivingBeing boid) {
@@ -209,7 +205,7 @@ public class BoidFlock {
         }
 
         if(closestObstacle != null) {
-            avoidOffset = closestObstacle.getPosition().subtract(boid.getPosition()).scalarDivide(100).scalarMultiply(-1);
+            avoidOffset = closestObstacle.getPosition().subtract(boid.getPosition()).scalarMultiply(-1);
         }
 
         return avoidOffset;
@@ -218,26 +214,26 @@ public class BoidFlock {
 
     private Vector2 meanderingRule(LivingBeing boid) {
 
-        this.meanderingVector = new Vector2(rng.nextInt(10)/100, rng.nextInt(10)/100);
+        Vector2 mV = new Vector2(rng.nextInt(10), rng.nextInt(10));
 
         int inversion = rng.nextInt(100);
 
         if(inversion > 25 && inversion < 50) {
-            this.meanderingVector = new Vector2(this.meanderingVector.getX() * -1, this.meanderingVector.getY());
+            mV = new Vector2(mV.getX() * -1, mV.getY());
         }
 
         if(inversion < 25) {
-            this.meanderingVector = new Vector2(this.meanderingVector.getX(), this.meanderingVector.getY() * -1);
+            mV = new Vector2(mV.getX(), mV.getY() * -1);
         }
 
         if(inversion > 50 && inversion < 75) {
-            this.meanderingVector = new Vector2(this.meanderingVector.getX() * -1, this.meanderingVector.getY() * -1);
+            mV = new Vector2(mV.getX() * -1, mV.getY() * -1);
         }
 
         try {
-            return boid.getGoal().subtract(this.meanderingVector);
+            return boid.getGoal().subtract(mV);
         } catch(NullPointerException ex) {
-            return this.meanderingVector;
+            return mV;
         }
     }
 

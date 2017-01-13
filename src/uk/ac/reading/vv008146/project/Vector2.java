@@ -98,4 +98,12 @@ public class Vector2 implements Serializable {
     public double getMagnitude() {
         return Math.sqrt(Math.pow(this.getX(), 2) + Math.pow(this.getY(), 2));
     }
+
+    @Override
+    public String toString() {
+        return "Vector2{" +
+                "x=" + x +
+                ", y=" + y +
+                '}';
+    }
 }

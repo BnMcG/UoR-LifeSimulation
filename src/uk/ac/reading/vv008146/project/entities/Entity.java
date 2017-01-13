@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 public abstract class Entity implements Serializable {
 
-    protected transient World world;
+    protected World world;
 
     protected Vector2 position;
 
@@ -58,7 +58,7 @@ public abstract class Entity implements Serializable {
         this.world = new World();
 
         this.energyDepletionValue = 0.01d;
-        this.boundingConstant = 300;
+        this.boundingConstant = 0.5;
 
         this.maxSpeed = 1.5;
 
@@ -86,9 +86,7 @@ public abstract class Entity implements Serializable {
             offset.setY(this.boundingConstant*-1);
         }
 
-        if(offset.getX() != 0 && offset.getY() != 0) {
-            velocity = offset;
-        }
+        velocity = velocity.add(offset);
 
         if(velocity.getMagnitude() > this.maxSpeed) {
             Vector2 velocityUnit = velocity.scalarDivide(velocity.getMagnitude());
@@ -249,5 +247,13 @@ public abstract class Entity implements Serializable {
 
     public void setWorld(World world) {
         this.world = world;
+    }
+
+    public double getMaxSpeed() {
+        return maxSpeed;
+    }
+
+    public void setMaxSpeed(double maxSpeed) {
+        this.maxSpeed = maxSpeed;
     }
 }

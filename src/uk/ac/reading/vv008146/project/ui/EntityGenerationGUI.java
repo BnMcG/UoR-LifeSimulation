@@ -124,7 +124,7 @@ public class EntityGenerationGUI {
         root.add(lblSprite, 0, 8);
 
         ChoiceBox choiceSprite = new ChoiceBox(FXCollections.observableArrayList(
-                "ram", "tiger", "men-santa", "men-snow"
+                "ram", "tiger", "cat", "cow", "men-santa", "men-snow"
         ));
         choiceSprite.setPrefWidth(root.getWidth());
 
@@ -142,9 +142,16 @@ public class EntityGenerationGUI {
 
             // Create a new entity
             LivingBeing being = new LivingBeing("animals/" + choiceSprite.getValue(), new Vector2(0, 0), new World(1,1,1));
+
+            being.setSpecies(txtName.getText());
             being.setEnergy(Double.valueOf(txtEnergy.getText()));
             being.setEnergyDepletionValue(Double.valueOf(txtEnergyDepletion.getText()));
             being.setConsumptionEfficiencyPercentage(Double.valueOf(txtConsumptionEfficiency.getText()));
+            being.setMaxSpeed(Double.parseDouble(txtMaxSpeed.getText()));
+
+            if(chkHerd.isSelected()) {
+                being.setFlock(true);
+            }
 
             being.setVelocity(new Vector2(0,0));
             being.save(preferences.get("settings-directory", ".") + "/" + txtName.getText().toLowerCase() + ".entity");

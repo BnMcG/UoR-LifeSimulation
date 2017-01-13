@@ -14,10 +14,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import uk.ac.reading.vv008146.project.World;
 import uk.ac.reading.vv008146.project.entities.Entity;
+
+import java.io.File;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.prefs.Preferences;
@@ -114,13 +117,7 @@ public class GUI extends Application {
 
                 if(newWorldStage.getWorld() != null) {
                     this.simulatedWorld = newWorldStage.getWorld();
-                    this.worldCanvas.getChildren().clear();
-                    this.worldCanvas.setStyle("-fx-background-color: mediumspringgreen");
-                    this.setupEntityViews();
-
-                    this.simulate = false;
-                    this.simulationTimer.start();
-
+                    this.setupWorldCanvas();
 
                 } else {
                     System.err.println("Epic fail!");
@@ -135,8 +132,30 @@ public class GUI extends Application {
 
         MenuItem openConfigItem = new MenuItem("Open configuration");
         fileMenu.getItems().add(openConfigItem);
+        openConfigItem.setOnAction(ActionEvent -> {
+            Preferences preferences = Preferences.userRoot().node("life-simulation");
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Open World");
+            fileChooser.setInitialDirectory(new File(preferences.get("settings-directory", ".")));
+            File file = fileChooser.showOpenDialog(primaryStage);
+
+            if(file != null) {
+                this.simulatedWorld = World.load(file.getPath());
+                this.setupWorldCanvas();
+            }
+
+        });
+
         MenuItem saveItem = new MenuItem("Save");
         fileMenu.getItems().add(saveItem);
+        saveItem.setOnAction(ActionEvent -> {
+            Preferences preferences = Preferences.userRoot().node("life-simulation");
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Open World");
+            fileChooser.setInitialDirectory(new File(preferences.get("settings-directory", ".")));
+            this.simulatedWorld.save(fileChooser.showSaveDialog(primaryStage).getPath());
+        });
+
         MenuItem saveAsItem = new MenuItem("Save as");
         fileMenu.getItems().add(saveAsItem);
 
@@ -184,12 +203,14 @@ public class GUI extends Application {
                     if(noise[x][y] > 0.6) {
                         Rectangle r = new Rectangle(x, y, 1, 1);
                         r.setFill(Color.DARKGREEN);
+                        r.setOpacity(0.5);
                         worldCanvas.getChildren().add(r);
                     }
 
                     if(noise[x][y] < -0.7) {
                         Rectangle r = new Rectangle(x, y, 1, 1);
                         r.setFill(Color.DEEPSKYBLUE);
+                        r.setOpacity(0.5);
                         worldCanvas.getChildren().add(r);
                     }
                 }
@@ -237,7 +258,7 @@ public class GUI extends Application {
             this.simulate = true;
             pauseItem.setDisable(false);
             runItem.setDisable(true);
-            //mp.play();
+            mp.play();
         });
 
         pauseItem.setOnAction(actionEvent -> {
@@ -379,6 +400,15 @@ public class GUI extends Application {
         for(EntityView v : this.views) {
             this.worldCanvas.getChildren().add(v.getSprite());
         }
+    }
+
+    private void setupWorldCanvas() {
+        this.worldCanvas.getChildren().clear();
+        this.worldCanvas.setStyle("-fx-background-color: mediumspringgreen");
+        this.setupEntityViews();
+
+        this.simulate = false;
+        this.simulationTimer.start();
     }
 
     private void updateEntityViews() {

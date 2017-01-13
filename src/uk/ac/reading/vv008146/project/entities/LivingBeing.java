@@ -19,6 +19,7 @@ public class LivingBeing extends Entity {
     private long lastRandomMovement;
     private Direction lastRandomDirection;
 
+    protected String species;
     private boolean dead;
     private boolean flock; // Will be used to determine if we should apply Boids algorithm
 
@@ -74,6 +75,14 @@ public class LivingBeing extends Entity {
         this.lastRandomMovement = System.currentTimeMillis();
     }
 
+    public String getSpecies() {
+        return species;
+    }
+
+    public void setSpecies(String species) {
+        this.species = species;
+    }
+
     public double getAttackValue() {
         return attackValue;
     }
@@ -104,114 +113,6 @@ public class LivingBeing extends Entity {
 
     public void setLastRandomMovement(long lastRandomMovement) {
         this.lastRandomMovement = lastRandomMovement;
-    }
-
-    public Direction getLastRandomDirection() {
-        return lastRandomDirection;
-    }
-
-    public void setLastRandomDirection(Direction lastRandomDirection) {
-        this.lastRandomDirection = lastRandomDirection;
-    }
-
-    /**
-     * Check for food in a given direction and range
-     * @param d Which direction to look for food in
-     * @param range How far in that direction to look
-     * @return True if food is found, else false
-     */
-
-    public boolean smellFood(Direction d, int range) {
-        switch(d) {
-            case NORTH:
-                // Max value
-                double maxNorth = this.getPosition().getY() - range;
-
-                for(Entity e : this.world.getEntities().values()) {
-
-                    if(e == null) {
-                        continue;
-                    }
-
-                    if(!(e instanceof Food)) {
-                        break;
-                    }
-
-                    // Same x value
-                    if(e.getPosition().getX() == this.getPosition().getX()) {
-                        // >= because coordinates decrease the further north we go
-                        if(e.getPosition().getY() < this.getPosition().getY() && e.getPosition().getY() >= maxNorth) {
-                            return true;
-                        }
-                    }
-                }
-                break;
-            case EAST:
-                double maxEast = this.getPosition().getX() + range;
-
-                for(Entity e : this.world.getEntities().values()) {
-
-                    if(e == null) {
-                        continue;
-                    }
-
-                    if(!(e instanceof Food)) {
-                        break;
-                    }
-
-                    // Same y value
-                    if(e.getPosition().getY() == this.getPosition().getY()) {
-                        if(e.getPosition().getX() > this.getPosition().getX() && e.getPosition().getX() <= maxEast) {
-                            return true;
-                        }
-                    }
-                }
-                break;
-            case SOUTH:
-                double maxSouth = this.getPosition().getY() + range;
-
-                for(Entity e : this.world.getEntities().values()) {
-
-                    if(e == null) {
-                        continue;
-                    }
-
-                    if(!(e instanceof Food)) {
-                        break;
-                    }
-
-                    // Same x value
-                    if(e.getPosition().getX() == this.getPosition().getX()) {
-                        if(e.getPosition().getY() > this.getPosition().getY() && e.getPosition().getY() <= maxSouth) {
-                            return true;
-                        }
-                    }
-                }
-                break;
-            case WEST:
-                double maxWest = this.getPosition().getX() - range;
-
-                for(Entity e : this.world.getEntities().values()) {
-
-                    if(e == null) {
-                        continue;
-                    }
-
-                    if(!(e instanceof Food)) {
-                        break;
-                    }
-
-                    // Same y value
-                    if(e.getPosition().getY() == this.getPosition().getY()) {
-                        if(e.getPosition().getX() < this.getPosition().getX() && e.getPosition().getX() >= maxWest) {
-                            return true;
-                        }
-                    }
-                }
-                break;
-        }
-
-        return false;
     }
 
     /**
@@ -307,7 +208,7 @@ public class LivingBeing extends Entity {
      * @return
      */
 
-    public static LivingBeing load(String path) {
+    public static LivingBeing load(String path, World world) {
 
         try {
             FileInputStream fis = new FileInputStream(path);
@@ -316,6 +217,7 @@ public class LivingBeing extends Entity {
 
             if(loadedObject instanceof LivingBeing) {
                 LivingBeing being = (LivingBeing) loadedObject;
+                being.world = world;
                 return being;
             }
 

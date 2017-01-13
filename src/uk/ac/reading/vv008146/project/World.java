@@ -22,7 +22,8 @@ public class World implements Serializable {
     private int width;
     private int height;
     private Map<UUID, Entity> entities;
-    private List<BoidFlock> flocks;
+
+    private Map<String, BoidFlock> flockMap;
 
     private Vector2 minimumPosition;
     private Vector2 maximumPosition;
@@ -168,6 +169,8 @@ public class World implements Serializable {
         world.generateNoise();
         world.setupMinMaxPositions();
 
+        world.flockMap = new HashMap<>();
+
         // Add food to the world
         float foodPercentageMultiplier = (float) foodPercent / 100;
         int foodQuantity = Math.round((area * foodPercentageMultiplier));
@@ -212,13 +215,26 @@ public class World implements Serializable {
             String entity = splitString[i];
 
             for(int j = 0; j < quantity; j++) {
-                LivingBeing being = LivingBeing.load(preferences.get("settings-directory", ".") + "/" + entity + ".entity");
+                LivingBeing being = LivingBeing.load(preferences.get("settings-directory", ".") + "/" + entity + ".entity", world);
                 being.setUuid();
+
                 int[] randomPos = world.findRandomEmptyPosition();
                 Vector2 randomPosAsVec = new Vector2(randomPos[0], randomPos[1]);
 
                 being.setPosition(randomPosAsVec);
                 being.setWorld(world);
+
+                if(being.isFlock()) {
+                    if(world.flockMap.get(being.getSpecies()) != null) {
+                        BoidFlock flock = world.flockMap.get(being.getSpecies());
+                        flock.add(being);
+                    } else {
+                        List<LivingBeing> flockContents = new ArrayList<>();
+                        flockContents.add(being);
+                        BoidFlock flock = new BoidFlock(flockContents, world.getMinimumPosition(), world.getMaximumPosition(), world);
+                        world.flockMap.put(being.getSpecies(), flock);
+                    }
+                }
 
                 world.addEntity(being);
             }
@@ -446,20 +462,16 @@ public class World implements Serializable {
 
     private void moveEntityInRandomDirection(LivingBeing e) {
 
-        // Only move randomly if sufficient time has passed
-        if(!((System.currentTimeMillis() - e.getLastRandomMovement()) > 1000)) {
-            // Continue in the last random direction
-            e.setVelocity(e.getGoal().subtract(e.getPosition().scalarDivide(1000).scalarMultiply(0.01)));
-            e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
-
-            // Don't do anything else
-            return;
+        // Set a new random goal
+        if((System.currentTimeMillis() - e.getLastRandomMovement()) > 5000) {
+            Random rng = new Random();
+            e.setGoal(new Vector2(rng.nextInt((int) this.getMaximumPosition().getX()), rng.nextInt((int) this.getMaximumPosition().getY())));
+            e.setLastRandomMovement(System.currentTimeMillis());
         }
 
-        // Set a new random goal
-        Random rng = new Random();
-        e.setGoal(new Vector2(rng.nextInt((int) this.getMaximumPosition().getX()), rng.nextInt((int) this.getMaximumPosition().getY())));
-        e.setLastRandomMovement(System.currentTimeMillis());
+        e.setVelocity(e.getGoal().subtract(e.getPosition()));
+        e.setEnergy(e.getEnergy() - e.getEnergyDepletionValue());
+
     }
 
     /**
@@ -595,7 +607,14 @@ public class World implements Serializable {
             }
         }
 
-        //this.boidTestFlock.simulateFlock();
+        /*
+         * Iterate over each flock in the world and simulate them. Herds/flocks are simulated separately to
+         * other entities in the world so we can properly apply Boids algorithm rules to make them move as
+         * a flock.
+         */
+
+        // More Lambda goodness, it seems
+        this.flockMap.values().forEach(BoidFlock::simulateFlock);
 
     }
 
@@ -618,4 +637,34 @@ public class World implements Serializable {
     public void setMaximumPosition(Vector2 maximumPosition) {
         this.maximumPosition = maximumPosition;
     }
+
+    public void save(String path) {
+        try {
+            FileOutputStream fos = new FileOutputStream(path);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(this);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static World load(String path) {
+        try {
+            FileInputStream fis = new FileInputStream(path);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            Object loadedObject = ois.readObject();
+
+            if(loadedObject instanceof World) {
+                return (World) loadedObject;
+            }
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // something went wrong
+        return null;
+    }
+
 }
