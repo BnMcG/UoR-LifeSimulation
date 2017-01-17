@@ -2,10 +2,7 @@ package uk.ac.reading.vv008146.project;
 
 import javafx.scene.paint.Color;
 import uk.ac.reading.vv008146.project.behaviour.BoidFlock;
-import uk.ac.reading.vv008146.project.entities.Entity;
-import uk.ac.reading.vv008146.project.entities.Food;
-import uk.ac.reading.vv008146.project.entities.LivingBeing;
-import uk.ac.reading.vv008146.project.entities.Obstacle;
+import uk.ac.reading.vv008146.project.entities.*;
 import uk.ac.reading.vv008146.project.generation.SimplexNoise;
 
 import java.io.*;
@@ -14,9 +11,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.prefs.Preferences;
 
 /**
- * Created by Ben Magee on 11/10/2016.
- * Contact me: ben@bmagee.com
+ * World class represents a simulated world
  */
+
 public class World implements Serializable {
 
     private int width;
@@ -56,14 +53,29 @@ public class World implements Serializable {
         //this.boidTestFlock = new BoidFlock(new ArrayList<LivingBeing>(), new Vector2(0, 0), new Vector2(this.width, this.height), this);
     }
 
+    /**
+     * Setup the minimum positions that entities in the world can travel to
+     */
+
     private void setupMinMaxPositions() {
         this.minimumPosition = new Vector2(0,0);
         this.maximumPosition = new Vector2(this.width, this.height);
     }
 
+    /**
+     * Return the food detection distance (px) for entities in the world
+     * @return int
+     */
+
     public int getFoodDetectionDistance() {
         return foodDetectionDistance;
     }
+
+
+    /**
+     * Set how far away entities can see food
+     * @param foodDetectionDistance int how far away food can be detected
+     */
 
     public void setFoodDetectionDistance(int foodDetectionDistance) {
         this.foodDetectionDistance = foodDetectionDistance;
@@ -152,10 +164,12 @@ public class World implements Serializable {
      * Seed format WORLD_WIDTH WORLD_HEIGHT PERCENT_FOOD PERCENT_OBSTACLES [ANIMAL QUANTITY]*
      * @param seed
      */
-    public static World fromText(String seed, int maxEntities, int foodDetectionDistance) {
+    public static World fromText(String seed, int maxEntities, int foodDetectionDistance, List<String> food) {
 
         Preferences preferences = Preferences.userRoot().node("life-simulation");
+        Random rng = new Random();
 
+        // Split the seed to get individual properties from it
         String[] splitString = seed.split(" ");
 
         int width = Integer.parseInt(splitString[0]);
@@ -165,10 +179,16 @@ public class World implements Serializable {
         int foodPercent = Integer.parseInt(splitString[2]);
         int obstaclesPercent = Integer.parseInt(splitString[3]);
 
+        // Create a new world
         World world = new World(width, height, maxEntities);
+
+        // Generate a noise map used to distribute food
         world.generateNoise();
+
+        // Setup the min/max positions that an entity can travel to
         world.setupMinMaxPositions();
 
+        // Declare an empty hashmap for flocks, in case there are any
         world.flockMap = new HashMap<>();
 
         // Add food to the world
@@ -191,8 +211,10 @@ public class World implements Serializable {
             } while(!positionFound);
 
             Vector2 randomPosAsVec = new Vector2(randomPos[0], randomPos[1]);
+            String foodName = food.get(rng.nextInt(food.size()));
 
-            Food newFood = new Food(randomPosAsVec, 5, world);
+            Food newFood = Food.load(preferences.get("settings-directory", ".") + "/" + foodName + ".food", world);
+            newFood.setPosition(randomPosAsVec);
 
             world.addEntity(newFood);
         }
@@ -209,6 +231,7 @@ public class World implements Serializable {
             world.addEntity(newObstacle);
         }
 
+        // Add living beings to the world
         for(int i = 4; i < splitString.length - 1; i+= 2) {
             // Convert quantity to int
             int quantity = Integer.parseInt(splitString[i+1]);
@@ -245,7 +268,14 @@ public class World implements Serializable {
         return world;
     }
 
-    public void generateNoise() {
+    /**
+     * Generates a noise map for the world. This map is used to determine where food can spawn.
+     * Uses code in SimplexNoise.
+     *
+     * @see SimplexNoise#noise(double, double, double)
+     */
+
+    private void generateNoise() {
         // Noise generation
         this.noise = new double[width][height];
         double scaling = 0.007;
@@ -264,7 +294,7 @@ public class World implements Serializable {
 
     /**
      * Seed format WORLD_WIDTH WORLD_HEIGHT PERCENT_FOOD PERCENT_OBSTACLES [ANIMAL QUANTITY]*
-     * @param seed
+     * @param seed Seed to generate world from
      */
 
     public static World fromText(String seed) {
@@ -316,6 +346,11 @@ public class World implements Serializable {
         return world;
     }
 
+    /**
+     * Save a world to a file which can be loaded again later. Uses Java's Serializable capabilities.
+     * @param path Path to save world to
+     */
+
     public void toFile(String path) {
         // Export the world to a file
         FileOutputStream fileOS = null;
@@ -331,6 +366,14 @@ public class World implements Serializable {
             io.printStackTrace();
         }
     }
+
+    /**
+     * Load a saved world from a file. The path must be exist and be a world file saved by the current
+     * version of the application.
+     *
+     * @param path Path to world
+     * @return World
+     */
 
     public static World fromFile(String path) {
         World world = null;
@@ -349,33 +392,12 @@ public class World implements Serializable {
     }
 
     /**
-     * Check whether or not food is at a given position
-     *
-     * @param x X coordinate to check
-     * @param y Y coordinate to check
-     * @return
-     *
-
-    public boolean foodAt(int x, int y) {
-        boolean food = false;
-
-        for(Entity e : this.entities) {
-            if(e != null) {
-                if(e instanceof Food && e.gethPos() == x && e.getvPos() == y) {
-                    food = true;
-                    break;
-                }
-            }
-        }
-
-        return food;
-    } */
-
-    /**
-     * Check whether this tile is blocked by a
+     * Check whether this tile is blocked by an obstacle
      * @param x X coordinate
      * @param y Y coordinate
-     * @return
+     * @return Boolean
+     *
+     * @deprecated Use vector positioning with the avoidObstacles rule instead
      */
 
     public boolean blocked(double x, double y) {
@@ -397,6 +419,9 @@ public class World implements Serializable {
     /**
      * Find an empty position in the world
      * @return horizontal position at return[0] and vertical position at return[1]
+     *
+     * @deprecated Will be removed in a future release. All positions are now empty since transitioning
+     * to the GUI
      */
 
     public int[] findRandomEmptyPosition() {
@@ -416,7 +441,7 @@ public class World implements Serializable {
      * @return Integer energy count
      */
 
-    public int totalEntityEnergy() {
+     int totalEntityEnergy() {
         int sum = 0;
 
         for(Entity e : this.entities.values()) {
@@ -438,7 +463,7 @@ public class World implements Serializable {
      * @return Number of food items left
      */
 
-    public int foodCount() {
+     int foodCount() {
         int sum = 0;
 
         for(Entity e : this.entities.values()) {
@@ -456,8 +481,10 @@ public class World implements Serializable {
     }
 
     /**
-     * Move the entity in a random direction
-     * @param e
+     * Move the entity in a random direction. tihs is no longer restricted to compass directions, as a
+     * vector is set.
+     *
+     * @param e LivingBeing to move
      */
 
     private void moveEntityInRandomDirection(LivingBeing e) {
@@ -475,71 +502,9 @@ public class World implements Serializable {
     }
 
     /**
-     * Simulate a tick in the world
-
-
-    public void simulate() {
-
-        for(int i = 0; i < this.entities.size() - 1; i++) {
-
-            Entity e = entities.get(i);
-
-            // Can't simulate food or obstacles
-            if(e instanceof Food || e instanceof Obstacle) {
-                // Abort mission, cap'n!
-                continue;
-            }
-
-            // Scan for food
-            if(e instanceof LivingBeing) {
-
-                // Cast the variable so we can smell for food
-                LivingBeing being = (LivingBeing) e;
-
-                if(being.smellFood(Direction.NORTH, foodDetectionDistance)) {
-                    // Move in this direction
-                    if(!(this.blocked(e.getPosition().getX(), e.getPosition().getY() - 1))) {
-                        if(e.getPosition().getY() - 1 > 0) {
-                            e.setPosition(new Vector2(e.getPosition().getX(), e.getPosition().getY() - 1));
-                        } else {
-                            moveEntityInRandomDirection((LivingBeing) e);
-                        }
-                    }
-                }
-                else if(being.smellFood(Direction.EAST, foodDetectionDistance)) {
-                    if(!(this.blocked(e.gethPos() + 1, e.getvPos()))) {
-                        if(e.gethPos() + 1 <= this.width) {
-                            e.sethPos(e.gethPos() + 1);
-                        } else {
-                            moveEntityInRandomDirection((LivingBeing) e);
-                        }
-                    }
-                }
-                else if(being.smellFood(Direction.SOUTH, foodDetectionDistance)) {
-                    if(!(this.blocked(e.gethPos(), e.getvPos() + 1))) {
-                        if(e.getvPos() + 1 <= this.height) {
-                            e.setvPos(e.getvPos() + 1);
-                        } else {
-                            moveEntityInRandomDirection((LivingBeing) e);
-                        }
-                    }
-                }
-                else if(being.smellFood(Direction.WEST, foodDetectionDistance)) {
-                    if(!(this.blocked(e.gethPos() -1, e.getvPos()))) {
-                        if(e.gethPos() - 1 > 0) {
-                            e.sethPos(e.gethPos() - 1);
-                        } else {
-                            moveEntityInRandomDirection((LivingBeing) e);
-                        }
-                    }
-                } else {
-                    moveEntityInRandomDirection((LivingBeing) e);
-                }
-
-                removeEatenFood(e);
-            }
-        }
-    } */
+     * Removes food eaten by entities. If the eaten food is actually another being, will set its energy to 0
+     * @param e LivingBeing doing the eating
+     */
 
     public void removeEatenFood(Entity e) {
 
@@ -553,12 +518,33 @@ public class World implements Serializable {
                         // Dinner time for our entity
                         // Eating isn't a 100% efficient process though, so the entity won't gain all of the energy in the
                         // food, some will be expended... :(
-                        e.setEnergy(e.getEnergy() + (worldEntity).getEnergy() * e.getConsumptionEfficiencyPercentage());
+                        Food asFood = (Food) worldEntity;
+
+                        if (asFood.isPoisonous()) {
+                            e.setEnergy(e.getEnergy() - (worldEntity).getEnergy());
+                        } else {
+                            e.setEnergy(e.getEnergy() + (worldEntity).getEnergy() * e.getConsumptionEfficiencyPercentage());
+                        }
 
                         // Gobble gobble
                         // We don't remove food any more, since it can grow back. There was also a pesky ConcurrentModificationException that wouldn't
                         // disappear, even when using an iterator.
                         worldEntity.setEnergy(0);
+                    }
+
+                    if(worldEntity instanceof LivingBeing && e instanceof LivingBeing) {
+
+                        if(((LivingBeing) e).isCarnivore()) {
+                            if(!worldEntity.equals(e)) {
+                                LivingBeing lb = (LivingBeing) e;
+
+                                if (lb.isCarnivore()) {
+                                    e.setEnergy(e.getEnergy() + (worldEntity).getEnergy() * e.getConsumptionEfficiencyPercentage());
+                                }
+
+                                ((LivingBeing) worldEntity).setEnergy(0);
+                            }
+                        }
                     }
                 }
             }
@@ -586,12 +572,12 @@ public class World implements Serializable {
 
                 // Only process living beings that aren't part of a flock, this should prevent stuttering
 
-                if (!being.isFlock()) {
+                if (!being.isFlock() && !(being.isDead())) {
 
                     if (being.smellFood(foodDetectionDistance) != null) {
 
-                        Food food = being.smellFood(foodDetectionDistance);
-                        being.setVelocity(being.getVelocity().add(being.calculateVectorToFood(food)));
+                        Entity meal = being.smellFood(foodDetectionDistance);
+                        being.setVelocity(being.getVelocity().add(being.calculateVectorToFood(meal)));
 
 
                     } else {
@@ -618,25 +604,57 @@ public class World implements Serializable {
 
     }
 
+    /**
+     * Get the world's noise map
+     * @return double[][] Noise value for each X,Y in the world
+     */
+
     public double[][] getNoise() {
         return noise;
     }
+
+    /**
+     * Get the world's minimum position
+     * @return Vector2
+     */
 
     public Vector2 getMinimumPosition() {
         return minimumPosition;
     }
 
+    /**
+     * Set the world's minimum position
+     * @param minimumPosition Vector2 min position
+     */
+
     public void setMinimumPosition(Vector2 minimumPosition) {
         this.minimumPosition = minimumPosition;
     }
+
+    /**
+     * Get the world's maximum position
+     * @return Vector2
+     */
 
     public Vector2 getMaximumPosition() {
         return maximumPosition;
     }
 
+    /**
+     * Set the world's maximum position
+     * @param maximumPosition Vector2 of maximum position
+     */
+
     public void setMaximumPosition(Vector2 maximumPosition) {
         this.maximumPosition = maximumPosition;
     }
+
+    /**
+     * Save the world to a file.
+     *
+     * @see World#toFile(String)
+     * @param path Path to save to
+     */
 
     public void save(String path) {
         try {
@@ -648,6 +666,15 @@ public class World implements Serializable {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Load the world from a file. The file must exist and be generated by a current version of
+     * the application.
+     *
+     * @param path Path to save file
+     * @return World
+     * @see World#fromFile(String)
+     */
 
     public static World load(String path) {
         try {

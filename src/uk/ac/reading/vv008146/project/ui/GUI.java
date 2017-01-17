@@ -19,6 +19,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import uk.ac.reading.vv008146.project.World;
 import uk.ac.reading.vv008146.project.entities.Entity;
+import uk.ac.reading.vv008146.project.entities.GraveMarker;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -26,9 +27,9 @@ import java.util.*;
 import java.util.prefs.Preferences;
 
 /**
- * Created by Ben Magee on 22/11/2016.
- * Contact me: ben@bmagee.com
+ * GUI is the main window of the application, used to display a simulated world
  */
+
 public class GUI extends Application {
 
     private MediaPlayer mp;
@@ -47,14 +48,24 @@ public class GUI extends Application {
 
     private List<EntityView> views;
 
+    private Random rng;
+
+    /**
+     * Open the GUI
+     * @param primaryStage Stage to open the GUI onto
+     * @throws Exception Some exceptions may be thrown.
+     */
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
+        // preferences used to access first-run settings and whatnot
         this.preferences = Preferences.userRoot().node("life-simulation");
         this.setupPreferences();
         this.views = new ArrayList<EntityView>();
+        this.rng = new Random();
 
-
+        // Set the window title
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Life");
 
@@ -69,18 +80,22 @@ public class GUI extends Application {
         BorderPane root = new BorderPane();
         Scene scene = new Scene(root, 800, 600);
 
+        // Set the menu bar and canvas position
         root.setCenter(worldCanvas);
         root.setTop(menuBar);
 
+        // Show the GUI
         primaryStage.setScene(scene);
         primaryStage.show();
 
+        // Lay everything out correctly
         worldCanvas.layout();
 
         this.simulationTimer = new AnimationTimer() {
 
             @Override
             public void handle(long now) {
+                // If the world is  simulating, update it
                 if(simulate) {
                     simulatedWorld.simulateOutsideOfGrid();
 
@@ -91,6 +106,11 @@ public class GUI extends Application {
             }
         };
     }
+
+    /**
+     * Setup the menus in the application, as well as ActionEvent listeners to
+     * control what each item does.
+     */
 
     private void setupMenus() {
         // Setup menu
@@ -105,7 +125,7 @@ public class GUI extends Application {
         newConfigItem.setOnAction(actionEvent -> {
             WorldStage newWorldStage = new WorldStage(simulatedWorld);
             newWorldStage.setWidth(500);
-            newWorldStage.setHeight(300);
+            newWorldStage.setHeight(400);
             newWorldStage.setResizable(false);
             newWorldStage.setTitle("World Creation");
             newWorldStage.initModality(Modality.APPLICATION_MODAL);
@@ -156,9 +176,6 @@ public class GUI extends Application {
             this.simulatedWorld.save(fileChooser.showSaveDialog(primaryStage).getPath());
         });
 
-        MenuItem saveAsItem = new MenuItem("Save as");
-        fileMenu.getItems().add(saveAsItem);
-
         MenuItem exitItem = new MenuItem("Exit");
         // Fancy fancy lambda expressions
         exitItem.setOnAction(actionEvent -> Platform.exit());
@@ -166,19 +183,6 @@ public class GUI extends Application {
 
         // VIEW MENU
         Menu viewMenu = new Menu("View");
-
-        MenuItem displayConfigItem = new MenuItem("Display configuration");
-        viewMenu.getItems().add(displayConfigItem);
-
-        MenuItem editConfigItem = new MenuItem("Edit configuration");
-
-        viewMenu.getItems().add(editConfigItem);
-
-        MenuItem displayLifeInfoItem = new MenuItem("Display life form information");
-        viewMenu.getItems().add(displayLifeInfoItem);
-
-        MenuItem displayMapInfoItem = new MenuItem("Display map information");
-        viewMenu.getItems().add(displayMapInfoItem);
 
         MenuItem debugArtifactsItem = new MenuItem("Show debugging artifacts");
 
@@ -220,12 +224,6 @@ public class GUI extends Application {
         // EDIT MENU
         Menu editMenu = new Menu("Edit");
 
-        MenuItem modifyCurrentLifeFormParamsItem = new MenuItem("Modify current life form parameters");
-        editMenu.getItems().add(modifyCurrentLifeFormParamsItem);
-
-        MenuItem removeCurrentLifeFormItem = new MenuItem("Remove current life form");
-        editMenu.getItems().add(removeCurrentLifeFormItem);
-
         MenuItem addNewLifeFormItem = new MenuItem("New life form");
 
         addNewLifeFormItem.setOnAction(actionEvent -> {
@@ -246,6 +244,25 @@ public class GUI extends Application {
         });
 
         editMenu.getItems().add(addNewLifeFormItem);
+
+        MenuItem addNewFoodItem = new MenuItem("New food item");
+
+        addNewFoodItem.setOnAction(actionEvent -> {
+            Stage newFoodStage = new Stage();
+            newFoodStage.setWidth(500);
+            newFoodStage.setHeight(300);
+            newFoodStage.setResizable(false);
+            newFoodStage.setTitle("Food Creation");
+            newFoodStage.initModality(Modality.APPLICATION_MODAL);
+            newFoodStage.initOwner(primaryStage);
+
+            new FoodGenerationGUI(newFoodStage);
+
+            newFoodStage.show();
+        });
+
+        editMenu.getItems().add(addNewFoodItem);
+
 
         // SIMULATION MENU
         Menu simulationMenu = new Menu("Simulation");
@@ -272,21 +289,8 @@ public class GUI extends Application {
 
         simulationMenu.getItems().add(pauseItem);
 
-        MenuItem resetItem = new MenuItem("Reset");
-        resetItem.setDisable(true); // Can't reset before running
-        simulationMenu.getItems().add(resetItem);
-
-        MenuItem displayMapIterationItem = new MenuItem("Display map at each iteration");
-        simulationMenu.getItems().add(displayMapIterationItem);
-
         // HELP MENU
         Menu helpMenu = new Menu("Help");
-
-        MenuItem appInfoItem = new MenuItem("About application");
-        helpMenu.getItems().add(appInfoItem);
-
-        MenuItem authorInfoItem = new MenuItem("About author");
-        helpMenu.getItems().add(authorInfoItem);
 
         MenuItem resetFirstRun = new MenuItem("Reset first-run flag");
 
@@ -307,6 +311,10 @@ public class GUI extends Application {
         menuBar.getMenus().add(simulationMenu);
         menuBar.getMenus().add(helpMenu);
     }
+
+    /**
+     * Queue the music, DJ!
+     */
 
     private void setupMedia() {
 
@@ -349,6 +357,11 @@ public class GUI extends Application {
 
     }
 
+    /**
+     * Sets up the pane which will be used to display all the entities in the world
+     * using EntityViews.
+     */
+
     private void setupCanvas() {
         // Setup pane to simulate world in
         this.worldCanvas = new Pane();
@@ -364,9 +377,18 @@ public class GUI extends Application {
         worldCanvas.getChildren().add(placeholderText);
     }
 
+    /**
+     * Start the application
+     * @param args Command line arguments
+     */
+
     public static void main(String[] args) {
         launch(args);
     }
+
+    /**
+     * Determine whether or not the user has run the application before, and if not define some settings
+     */
 
     private void setupPreferences() {
         // Determine if user has run the application before
@@ -388,6 +410,11 @@ public class GUI extends Application {
         }
     }
 
+    /**
+     * Setup the entities in the world with EntityViews so that they can be displayed in the GUI.
+     * This method should only be run once a new world has been initialized.
+     */
+
     private void setupEntityViews() {
 
         this.views.clear();
@@ -402,6 +429,11 @@ public class GUI extends Application {
         }
     }
 
+    /**
+     * Setup the Pane used for drawing the world, in preparation for some simulations to be done.
+     * Starts the simulation timer, but does not start the simulation (simulate flag is still false)
+     */
+
     private void setupWorldCanvas() {
         this.worldCanvas.getChildren().clear();
         this.worldCanvas.setStyle("-fx-background-color: mediumspringgreen");
@@ -410,6 +442,10 @@ public class GUI extends Application {
         this.simulate = false;
         this.simulationTimer.start();
     }
+
+    /**
+     * Update the position and display of each EntityView with respect to the entity that it represents.
+     */
 
     private void updateEntityViews() {
 
@@ -428,6 +464,13 @@ public class GUI extends Application {
 
             if(e.getEnergy() <= 0) {
                 v.getSprite().setVisible(false);
+
+                // Decide whether or not to respawn this entity (probably food)
+                if(rng.nextInt(1000) > 998) {
+                    e.setEnergy(15);
+                    v.getSprite().setVisible(true);
+                }
+
             }
 
             v.getSprite().setX(e.getPosition().getX());

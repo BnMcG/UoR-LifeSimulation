@@ -13,12 +13,10 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Created by Ben Magee on 20/12/2016.
- * Contact me: ben@bmagee.com
- *
  * This class will allow the entities within its list to act as a single flock or herd. Great for setting
  * up living beings to behave in herds rather than as individuals
  */
+
 public class BoidFlock implements Serializable {
 
     // All entities to consider when applying boid rules
@@ -29,30 +27,29 @@ public class BoidFlock implements Serializable {
 
     private double centreOfMassMovementFactor; // How far towards the flock's CoM to move a boid on each iteration (as a %) - default is 1 to move it 1% of the way
     private double minimumBoidDistance; // Minimum distance between two boids of the flock
-    private double boundingConstant; // How quickly boids will return back inside the bounds if they travel outside
-
-    private double maximumSpeed; // Max speed of the boids
-
-    private Vector2 minimumPosition; // The minimum X/Y values the boids can travel to
-    private Vector2 maximumPosition; // The maximum X/Y values that the boids can travel to
 
     private long goalLastChanged;
     private Vector2 goal;
 
     private Random rng;
 
+    /**
+     * Instantiate a boid flock with a given list of entities. Use the world's min/max position, although
+     * these are no longer required to be passed into this method and will be removed from the constructor
+     * when refactoring can take place.
+     *
+     * @param flock List of living beings to include in the flock
+     * @param minPosition Maximum position the flock can move to
+     * @param maxPosition Minimum position the flock can move to
+     * @param world The world the flock is in
+     */
+
     public BoidFlock(List<LivingBeing> flock, Vector2 minPosition, Vector2 maxPosition, World world) {
         this.flock = flock;
         this.world = world;
 
         this.centreOfMassMovementFactor = 1;
-        this.minimumBoidDistance = 300;
-        this.boundingConstant = 150;
-
-        this.maximumSpeed = 1.5;
-
-        this.minimumPosition = minPosition;
-        this.maximumPosition = maxPosition;
+        this.minimumBoidDistance = 55;
 
         this.rng = new Random();
 
@@ -60,12 +57,24 @@ public class BoidFlock implements Serializable {
         this.goalLastChanged = System.currentTimeMillis();
     }
 
+    /**
+     * Add a living being to an existing flock
+     * @param e LivingBeing to add to the flock
+     */
+
     public void add(LivingBeing e) {
         this.flock.add(e);
     }
 
+    /**
+     * Simulate the flock's behaviour. This will update the positions and speeds of the entities
+     * within the flock, according to the rules dictated in a Boids design
+     */
+
     public void simulateFlock() {
 
+        // Only change the goal if defined number of seconds has passed. This allows the boids some time
+        // to actually travel to the target point without just jittering in one place
         if(System.currentTimeMillis() - this.goalLastChanged > 1000) {
             this.goal = (new Vector2(rng.nextInt(world.getWidth()), rng.nextInt(world.getHeight())));
             this.goalLastChanged = System.currentTimeMillis();
@@ -73,24 +82,39 @@ public class BoidFlock implements Serializable {
 
         for(LivingBeing boid : this.flock) {
 
-            Vector2 CoMVector = this.centreOfMassRule(boid).scalarMultiply(0);
-            Vector2 boundingVector = this.boundingRule(boid);
+            Vector2 CoMVector = this.centreOfMassRule(boid);
             Vector2 velocityVector = this.normaliseVelocityRule(boid).scalarMultiply(rng.nextInt(5));
             Vector2 positionVector = this.randomPositionRule(boid);
-            Vector2 obstacleAvoidanceVector = this.avoidObstaclesRule(boid);
             Vector2 meanderVector = this.meanderingRule(boid);
-            Vector2 distanceVector = this.maintainDistanceRule(boid).scalarMultiply(1);
 
-            boid.setVelocity(boid.getVelocity().add(CoMVector).add(boundingVector).add(meanderVector).add(positionVector).add(velocityVector).add(obstacleAvoidanceVector).add(distanceVector));
+            //boid.setVelocity(boid.getVelocity().add(CoMVector).add(boundingVector).add(meanderVector).add(positionVector).add(velocityVector).add(obstacleAvoidanceVector).add(distanceVector));
 
-            // Limit the maximum speed
-            boid.setVelocity(speedLimitationRule(boid));
+            boid.setVelocity(boid.getVelocity().add(CoMVector).add(velocityVector).add(positionVector));
+
+            Vector2 distanceVector = this.maintainDistanceRule(boid);
+            boid.setVelocity(boid.getVelocity().add(distanceVector));
+
+            // Only invert the CoM of the flock on 20% of occasions so that they stay together more often than not
+            if(this.rng.nextInt(100) > 80) {
+                Vector2 explodeVector = this.centreOfMassRule(boid).scalarMultiply(-1);
+                boid.setVelocity(boid.getVelocity().add(explodeVector));
+            }
+
+            //Vector2 obstacleAvoidanceVector = this.avoidObstaclesRule(boid);
+            //boid.setVelocity(boid.getVelocity().add(obstacleAvoidanceVector));
 
             boid.setPosition(boid.getPosition().add(boid.getVelocity()));
 
         }
 
     }
+
+    /**
+     * Draws the boids towards the centre of the flock so that they remain reasonably close together
+     *
+     * @param boid Boid to consider
+     * @return Vector2 The offset from the current velocity to allow movement towards the CoM
+     */
 
     private Vector2 centreOfMassRule(LivingBeing boid) {
 
@@ -102,13 +126,19 @@ public class BoidFlock implements Serializable {
             }
         }
 
-        // Divide by number of boids - 1 (discount the boid we're currently analyisng, as we want the
+        // Divide by number of boids - 1 (discount the boid we're currently analysing, as we want the
         // CoM for the whole flock) to return a mean average CoM vector
         perceivedCoM = perceivedCoM.scalarDivide(this.flock.size() - 1);
 
         // We don't want to immediately jump to the CoM, so provide a vector to gradually move towards it
-        return perceivedCoM.scalarDivide(1000).scalarMultiply(this.centreOfMassMovementFactor);
+        return perceivedCoM.scalarDivide(100);
     }
+
+    /**
+     * This rule stops the boids moving too close together and overlapping each other
+     * @param boid Boid to consider
+     * @return Vector2 offset from the current velocity
+     */
 
     private Vector2 maintainDistanceRule(LivingBeing boid) {
         // Method will return a vector that we can use to offset the boid's current position, so initalise to 0
@@ -117,6 +147,7 @@ public class BoidFlock implements Serializable {
         for(LivingBeing e : this.flock) {
             if(!(e.equals(boid))) {
                 double distance = e.getPosition().subtract(boid.getPosition()).getMagnitude();
+
                 if(distance < this.minimumBoidDistance) {
                     Vector2 currentDistance = e.getPosition().subtract(boid.getPosition());
                     offset = offset.subtract(currentDistance);
@@ -127,6 +158,14 @@ public class BoidFlock implements Serializable {
         return offset;
 
     }
+
+    /**
+     * Normalise the velocity of the current boid so that it's roughly the same as the velocity of
+     * the rest of the flock
+     *
+     * @param boid Boid to consider
+     * @return Vector2 velocity offset
+     */
 
     private Vector2 normaliseVelocityRule(LivingBeing boid) {
 
@@ -141,50 +180,36 @@ public class BoidFlock implements Serializable {
         // Don't count the boid we're currently considering
         normalisedVelocity = normalisedVelocity.scalarDivide(this.flock.size() - 1);
 
-        return normalisedVelocity.subtract(boid.getVelocity()).scalarDivide(32);
+        return normalisedVelocity.subtract(boid.getVelocity()).scalarDivide(16);
     }
 
-    private Vector2 boundingRule(LivingBeing boid) {
-        Vector2 offset = new Vector2(0,0);
-
-        if(boid.getPosition().getX() < this.minimumPosition.getX()) {
-            offset.setX(this.boundingConstant);
-        } else if(boid.getPosition().getX() > this.maximumPosition.getX()) {
-            offset.setX(this.boundingConstant*-1);
-        }
-
-        if(boid.getPosition().getY() < this.minimumPosition.getY()) {
-            offset.setY(this.boundingConstant);
-        } else if(boid.getPosition().getY() > this.maximumPosition.getY()) {
-            offset.setY(this.boundingConstant*-1);
-        }
-
-        return offset;
-    }
-
-    private Vector2 speedLimitationRule(LivingBeing boid) {
-        Vector2 max = boid.getVelocity();
-
-        if(boid.getVelocity().getMagnitude() > this.maximumSpeed) {
-            Vector2 velocityUnit = boid.getVelocity().scalarDivide(boid.getVelocity().getMagnitude());
-            max = (velocityUnit.scalarMultiply(this.maximumSpeed));
-        }
-
-        return max;
-    }
+    /**
+     * Guide the boids either towards food or a random position in the world, so that they aren't
+     * just bimbling about in a corner when not near food
+     *
+     * @param boid Boid to consider
+     * @return Vector2 a vector towards the current goal position
+     */
 
     private Vector2 randomPositionRule(LivingBeing boid) {
 
         if(boid.smellFood(world.getFoodDetectionDistance()) != null) {
-            Food food = boid.smellFood(world.getFoodDetectionDistance());
-            this.goal = food.getPosition();
+            Entity meal = boid.smellFood(world.getFoodDetectionDistance());
+            this.goal = meal.getPosition();
         }
 
         boid.setGoal(this.goal);
 
         return boid.getGoal().subtract(boid.getPosition());
-        //return boid.getGoal().subtract(boid.getPosition()).scalarDivide(1000).scalarMultiply(this.centreOfMassMovementFactor).scalarMultiply(2);
     }
+
+    /**
+     * Guide the boids to avoid obstacles on the map. Boids will only avoid the closest obstacle
+     * to them
+     *
+     * @param boid Boid to consider
+     * @return Vector2 Offset of current velocity to avoid the closest detected obstacle
+     */
 
     private Vector2 avoidObstaclesRule(LivingBeing boid) {
 
@@ -211,6 +236,14 @@ public class BoidFlock implements Serializable {
         return avoidOffset;
 
     }
+
+    /**
+     * A rule that should introduce some random movement in each boid so that their movement across
+     * the map doesn't look quite so mechanical and perfect.
+     *
+     * @param boid Boid to consider
+     * @return Vector2 offset of current velocity
+     */
 
     private Vector2 meanderingRule(LivingBeing boid) {
 

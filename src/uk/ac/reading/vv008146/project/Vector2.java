@@ -3,9 +3,10 @@ package uk.ac.reading.vv008146.project;
 import java.io.Serializable;
 
 /**
- * Created by Ben Magee on 26/11/2016.
- * Contact me: ben@bmagee.com
+ * 2D vector implementation in Java, with support for some simple arithmetic.
+ * Nothing too fancy, just what's needed.
  */
+
 public class Vector2 implements Serializable {
 
     private double x;

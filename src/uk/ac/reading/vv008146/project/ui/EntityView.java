@@ -6,23 +6,18 @@ import uk.ac.reading.vv008146.project.entities.Entity;
 import uk.ac.reading.vv008146.project.utilities.SpriteLoader;
 
 /**
- * Created by Ben Magee on 22/11/2016.
- * Contact me: ben@bmagee.com
+ * EntityView links an entity with a sprite within the world
  */
+
 public class EntityView {
 
     protected ImageView sprite;
     protected Entity entity;
 
-    public EntityView(String spriteName, Entity entity) {
-
-        this.entity = entity;
-
-        this.sprite = new ImageView(SpriteLoader.load(spriteName));
-        this.sprite.setX(entity.getPosition().getX());
-        this.sprite.setY(entity.getPosition().getY());
-        this.entity = entity;
-    }
+    /**
+     * Declare an EntityView for the given entity.
+     * @param e Entity to link to
+     */
 
     public EntityView(Entity e) {
 
@@ -35,17 +30,29 @@ public class EntityView {
         this.sprite.setY(e.getPosition().getY());
     }
 
+    /**
+     * Get an ImageView of the entity's sprite to display in the world
+     * @return ImageView Entity's sprite
+     */
+
     public ImageView getSprite() {
         return sprite;
     }
 
-    public void setSprite(ImageView sprite) {
-        this.sprite = sprite;
-    }
+    /**
+     * Get the entity represented by this view
+     * @return Entity
+     */
 
     public Entity getEntity() {
         return entity;
     }
+
+    /**
+     * Set the entity represented by this view.
+     * @param entity Entity to represent
+     */
+
     public void setEntity(Entity entity) {
         this.entity = entity;
     }

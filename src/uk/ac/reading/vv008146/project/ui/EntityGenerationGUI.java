@@ -26,22 +26,24 @@ import java.util.ListIterator;
 import java.util.prefs.Preferences;
 
 /**
- * Created by Ben Magee on 20/12/2016.
- * Contact me: ben@bmagee.com
+ * GUI used to create entities
  */
+
 public class EntityGenerationGUI {
 
     private Stage stage;
     private Scene scene;
     private GridPane root;
 
-    private void setupForm() {
-
-    }
-
+    /**
+     * Create a GUI to generate entities within
+     * @param stage Stage to create the GUI within
+     */
 
     public EntityGenerationGUI(Stage stage) {
         this.stage = stage;
+
+        // Setup grid with some padding to look pretty
         this.root = new GridPane();
         root.setAlignment(Pos.CENTER);
         root.setHgap(20);
@@ -50,88 +52,76 @@ public class EntityGenerationGUI {
 
         this.scene = new Scene(root, stage.getWidth(), stage.getHeight());
 
-        //this.pane.setPrefSize(this.stage.getWidth(), this.stage.getHeight());
-        //this.pane.setPadding(new Insets(30, 30, 30, 30));
-
         Label lblName = new Label("Species name: ");
         root.add(lblName, 0, 0);
 
         TextField txtName = new TextField();
         root.add(txtName, 1, 0, 2, 1);
 
-        Label lblTag = new Label("Tag (displayed below sprite): ");
-        root.add(lblTag, 0, 1);
-
-        TextField txtTag = new TextField();
-        root.add(txtTag, 1, 1, 2, 1);
-
 
         Label lblEnergyDepletion = new Label("Energy Depletion Coefficient: ");
-        root.add(lblEnergyDepletion, 0, 2);
+        root.add(lblEnergyDepletion, 0, 1);
 
         TextField txtEnergyDepletion = new TextField();
         txtEnergyDepletion.setText("0.01");
-        root.add(txtEnergyDepletion, 1, 2, 2, 1);
+        root.add(txtEnergyDepletion, 1, 1, 2, 1);
 
 
         Label lblConsumptionEfficiency = new Label("Consumption efficiency percentage: ");
-        root.add(lblConsumptionEfficiency, 0, 3);
+        root.add(lblConsumptionEfficiency, 0, 2);
 
         TextField txtConsumptionEfficiency = new TextField();
         txtConsumptionEfficiency.setText("0.1");
-        root.add(txtConsumptionEfficiency, 1, 3, 2, 1);
+        root.add(txtConsumptionEfficiency, 1, 2, 2, 1);
 
 
         Label lblMaxSpeed = new Label("Maximum speed: ");
-        root.add(lblMaxSpeed, 0, 4);
+        root.add(lblMaxSpeed, 0, 3);
 
         TextField txtMaxSpeed = new TextField();
         txtMaxSpeed.setText("1.5");
-        root.add(txtMaxSpeed, 1, 4, 2, 1);
+        root.add(txtMaxSpeed, 1, 3, 2, 1);
 
 
         Label lblEnergy = new Label("Energy: ");
-        root.add(lblEnergy, 0, 5);
+        root.add(lblEnergy, 0, 4);
 
         TextField txtEnergy = new TextField();
         txtEnergy.setText("100");
-        root.add(txtEnergy, 1, 5, 2, 1);
+        root.add(txtEnergy, 1, 4, 2, 1);
 
 
         Label lblAttackPower = new Label("Attack Power: ");
-        root.add(lblAttackPower, 0, 6);
+        root.add(lblAttackPower, 0, 5);
 
         TextField txtAttackPower = new TextField();
         txtAttackPower.setText("3");
-        root.add(txtAttackPower, 1, 6, 2, 1);
+        root.add(txtAttackPower, 1, 5, 2, 1);
 
         // Herbivore/carnivore/omnivore selection
         ToggleGroup eatingGroup = new ToggleGroup();
         RadioButton radioHerbivore = new RadioButton("Herbivore?");
         RadioButton radioCarnivore = new RadioButton("Carnivore?");
-        RadioButton radioOmnivore = new RadioButton("Omnivore?");
 
         radioHerbivore.setToggleGroup(eatingGroup);
         radioCarnivore.setToggleGroup(eatingGroup);
-        radioOmnivore.setToggleGroup(eatingGroup);
 
-        root.add(radioHerbivore, 0, 7);
-        root.add(radioCarnivore, 1, 7);
-        root.add(radioOmnivore,  2, 7);
+        root.add(radioHerbivore, 0, 6);
+        root.add(radioCarnivore, 1, 6);
 
         // Sprite selection
         Label lblSprite = new Label("Sprite: ");
-        root.add(lblSprite, 0, 8);
+        root.add(lblSprite, 0, 7);
 
         ChoiceBox choiceSprite = new ChoiceBox(FXCollections.observableArrayList(
                 "ram", "tiger", "cat", "cow", "men-santa", "men-snow"
         ));
         choiceSprite.setPrefWidth(root.getWidth());
 
-        root.add(choiceSprite, 1, 8, 2, 1);
+        root.add(choiceSprite, 1, 7, 2, 1);
 
         CheckBox chkHerd = new CheckBox("Herd animal?");
-        root.add(chkHerd, 0, 9);
+        root.add(chkHerd, 0, 8);
 
         Button btnCreate = new Button("Create Entity");
         btnCreate.setPrefWidth(this.root.getWidth());
@@ -153,9 +143,15 @@ public class EntityGenerationGUI {
                 being.setFlock(true);
             }
 
+            if(radioCarnivore.isSelected()) {
+                being.setCarnivore(true);
+            } else {
+                being.setCarnivore(false);
+            }
+
             being.setVelocity(new Vector2(0,0));
             being.save(preferences.get("settings-directory", ".") + "/" + txtName.getText().toLowerCase() + ".entity");
-
+            this.stage.close();
         });
 
 

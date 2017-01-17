@@ -5,10 +5,16 @@ import uk.ac.reading.vv008146.project.Vector2;
 import uk.ac.reading.vv008146.project.World;
 
 /**
- * Created by Ben Magee on 08/11/2016.
- * Contact me: ben@bmagee.com
+ * Obstacle class represents an obstacle that cannot be passed in the world
  */
 public class Obstacle extends Entity {
+
+    /**
+     * Create an obstacle that living beings can't pass through
+     *
+     * @param position Vector2 Position in world to spawn
+     * @param world World Which world to spawn in
+     */
 
     public Obstacle(Vector2 position, World world) {
 

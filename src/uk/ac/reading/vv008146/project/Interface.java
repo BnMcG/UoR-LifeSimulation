@@ -8,8 +8,8 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 /**
- * Created by Ben Magee on 18/10/2016.
- * Contact me: ben@bmagee.com
+ * Console interface.
+ * @deprecated Use the GUI
  */
 public class Interface {
 
